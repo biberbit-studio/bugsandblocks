@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://bugsandblocks.biberbit.com/sitemap.xml

@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bugs &amp; Blocks: Garden Siege</title>
+<meta name="description" content="A block puzzle with a twist: grow flowers, swat pests and beat the Beetle King.">
+<link rel="canonical" href="https://bugsandblocks.biberbit.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Bugs &amp; Blocks: Garden Siege">
+<meta property="og:description" content="A block puzzle with a twist: grow flowers, swat pests and beat the Beetle King.">
+<meta property="og:url" content="https://bugsandblocks.biberbit.com/">
+<meta property="og:image" content="https://bugsandblocks.biberbit.com/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0c1626">
+<link rel="icon" type="image/png" href="img/icon-192.png">
+<link rel="apple-touch-icon" href="img/icon-192.png">
+<script>document.documentElement.classList.add("js")</script>
+<style>
+@font-face{font-family:"display";src:url(fonts/Grandstander.woff) format("woff");font-weight:100 900;font-display:swap}@font-face{font-family:"body";src:url(fonts/Grandstander.woff) format("woff");font-weight:100 900;font-display:swap}
+:root{
+  --bg:#0c1626;--violet:#1c8f52;--pink:#6a45c4;--cyan:#48d0ff;--gold:#ffb800;
+  --dw:800;--panel:#1a1042;--bar:rgba(13,7,34,.93);--foot:rgba(8,4,22,.6);--bezel:linear-gradient(150deg,#51419a,#150c33 45%,#2a1d5e);
+  --text:#f6f3ff;--muted:#cbc3ee;--line:rgba(255,255,255,.14);--card:rgba(255,255,255,.055);
+  --display:"display","Arial Black",system-ui,sans-serif;--body:"body",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{margin:0;font-family:var(--body);font-size:17px;color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+/* nothing may widen the page: floating art is cut at the screen edge (phones would zoom out otherwise) */
+html{overflow-x:hidden}
+main{overflow:hidden}
+@supports (overflow:clip){html,body{overflow-x:clip}main{overflow:clip}}
+img{max-width:100%;height:auto;display:block}
+i{font-style:normal}
+a{color:var(--gold)}
+a:focus-visible,.rail:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:8px}
+ul{list-style:none;margin:0;padding:0}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.wrap{position:relative;max-width:1160px;margin:0 auto;padding:0 22px}
+
+/* sky: twinkling canvas + drifting nebula, fixed behind everything */
+#sky,#sky2,.nebula{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:-1}
+.nebula{z-index:-2;background:
+  radial-gradient(60vw 50vh at 85% 8%,color-mix(in srgb,var(--pink) 34%,transparent),transparent 70%),
+  radial-gradient(70vw 60vh at 8% 22%,color-mix(in srgb,var(--violet) 46%,transparent),transparent 70%),
+  radial-gradient(60vw 50vh at 60% 95%,color-mix(in srgb,var(--cyan) 20%,transparent),transparent 70%),
+  var(--bg)}
+
+/* sprites: one-row strips stepped with CSS */
+.spr{display:block;--z:var(--s);width:var(--z);height:var(--z);object-fit:contain}
+.dimg{--z:var(--s);width:var(--z);height:auto;max-width:none;filter:drop-shadow(0 12px 28px rgba(0,0,0,.5))}
+@media(max-width:759px){.spr,.dimg{--z:var(--m)}}
+.fl{position:absolute;display:block;translate:calc(var(--px,0)*var(--k,12)*1px) calc(var(--py,0)*var(--k,12)*1px);transition:translate .5s cubic-bezier(.2,.7,.2,1);animation:bob var(--bob,7s) ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-14px) rotate(1.5deg)}}
+.tw{position:absolute;width:var(--z);height:var(--z);background:var(--c);clip-path:polygon(50% 0,58% 42%,100% 50%,58% 58%,50% 100%,42% 58%,0 50%,42% 42%);animation:tw 3.4s ease-in-out var(--dl) infinite;opacity:0;pointer-events:none}
+@keyframes tw{0%,100%{opacity:0;transform:scale(.2) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:30;background:var(--bar);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:22px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:var(--dw);font-size:1.25rem;color:var(--text);text-decoration:none;letter-spacing:.01em}
+.brand img{width:36px;height:36px;border-radius:9px}
+.top nav{display:none;gap:24px;margin-left:auto}
+.top nav a{color:var(--muted);text-decoration:none;font-weight:500;font-size:.98rem;transition:color .2s}
+.top nav a:hover{color:var(--text)}
+.pill{margin-left:auto;padding:8px 16px;border-radius:999px;font-weight:600;font-size:.92rem;text-decoration:none;color:#1d1140;background:linear-gradient(180deg,#ffe07a,var(--gold));box-shadow:0 0 22px -4px var(--gold);min-height:36px;display:inline-flex;align-items:center}
+@media(min-width:860px){.top nav{display:flex}.pill{margin-left:0}}
+
+/* hero */
+.hero{position:relative;padding:34px 0 30px}
+.hero>.wrap{display:grid;gap:26px;align-items:center}
+.logo{margin:0;max-width:min(520px,86vw)}
+.lg{position:relative;display:block;animation:pop .9s cubic-bezier(.2,1.5,.4,1) both}
+.lg.l2{width:74%;margin-top:-3%;animation-delay:.18s}
+.lg img{width:100%}
+.shine{position:absolute;inset:0;overflow:hidden;-webkit-mask:var(--mk) center/100% 100% no-repeat;mask:var(--mk) center/100% 100% no-repeat}
+.shine::after,.cta::after{content:"";position:absolute;top:0;bottom:0;left:0;width:36%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.85) 50%,transparent);transform:translateX(-130%) skewX(-18deg);animation:sweep 5s ease-in-out 1.2s infinite}
+.l2 .shine::after{animation-delay:1.6s}
+@keyframes sweep{0%{transform:translateX(-130%) skewX(-18deg)}45%,100%{transform:translateX(420%) skewX(-18deg)}}
+@keyframes pop{from{opacity:0;transform:scale(.55) translateY(20px)}}
+.tagline{font-size:clamp(1.1rem,2.4vw,1.4rem);color:var(--muted);max-width:32ch;margin:22px 0 28px;font-weight:500}
+.cta{position:relative;display:inline-flex;align-items:center;gap:12px;padding:15px 28px;border-radius:999px;font-weight:700;font-size:1.12rem;text-decoration:none;overflow:hidden;isolation:isolate;min-height:56px}
+.cta svg{width:26px;height:26px;flex:none}
+.cta.go{color:#1d1140;background:linear-gradient(180deg,#ffe68a,var(--gold) 55%,#f29a1f);box-shadow:0 6px 0 #a35a06,0 0 46px -6px var(--gold);transition:transform .15s,box-shadow .15s}
+.cta.go:hover{transform:translateY(-3px)}
+.cta.go:active{transform:translateY(3px);box-shadow:0 3px 0 #a35a06,0 0 30px -6px var(--gold)}
+.cta.soon{color:var(--text);border:2px solid transparent;background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(110deg,var(--gold),var(--pink),var(--cyan),var(--violet),var(--gold)) border-box;box-shadow:0 0 40px -10px var(--pink)}
+.cta::after{z-index:-1;opacity:.6;animation-duration:3.6s;animation-delay:0s}
+.note{font-size:.95rem;color:var(--muted);margin:14px 0 0}
+.stats{display:flex;gap:10px;margin-top:34px}
+.stats li{flex:0 1 auto;min-width:0;padding:12px 14px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.stats b{display:block;font-family:var(--display);font-weight:var(--dw);font-size:2.1rem;line-height:1;background:linear-gradient(180deg,#fff3c4,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;white-space:nowrap}
+
+.stage{position:relative;justify-self:center;width:min(100%,440px);aspect-ratio:1/1.16;margin-top:8px}
+.halo{position:absolute;inset:8% 4%;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--pink) 60%,transparent),color-mix(in srgb,var(--violet) 38%,transparent) 55%,transparent);animation:breathe 6s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.1);opacity:.8}}
+.orbit{position:absolute;left:50%;top:50%;border-radius:50%;border:1.5px solid rgba(255,255,255,.16);transform:translate(-50%,-50%)}
+.orbit::after{content:"";position:absolute;top:-5px;left:50%;width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 16px 4px var(--gold)}
+.o1{width:104%;height:104%;animation:turn 26s linear infinite}
+.o2{width:76%;height:76%;animation:turn 18s linear infinite reverse;border-color:rgba(255,255,255,.1)}
+.o2::after{box-shadow:0 0 16px 4px var(--cyan)}
+@keyframes turn{from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+.phone{display:block;border-radius:14% / 7.8%;padding:3.2%;background:var(--bezel);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.22),0 40px 80px -24px rgba(0,0,0,.85),0 0 90px -20px var(--g,var(--pink))}
+.phone img{width:100%;border-radius:11.5% / 6.5%}
+.hero-phone{left:24%;top:3%;width:52%}
+.hero-phone .phone{rotate:-5deg}
+.hero-boss{right:-9%;top:2%}
+.hero-art{left:-7%;bottom:-2%;width:38%}
+.hero-art img{rotate:-10deg;filter:drop-shadow(0 20px 30px rgba(0,0,0,.55))}
+@media(min-width:960px){
+  .hero{padding:56px 0 50px}
+  .hero>.wrap{grid-template-columns:1.05fr .95fr;gap:40px}
+  .stage{width:min(100%,560px)}
+}
+
+/* planet belt */
+.belt{position:relative;padding:26px 0 18px;border-block:1px solid var(--line);background:linear-gradient(90deg,rgba(123,60,255,.16),rgba(255,79,184,.12),rgba(63,224,255,.12));overflow:hidden}
+.track{display:flex;width:max-content;cursor:grab;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.track.drag{cursor:grabbing}
+.bi{display:grid;justify-items:center;gap:6px;padding:0 20px}
+.bi small{font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.belt-text{text-align:center;margin:16px 0 0;font-weight:500;color:var(--text);padding:0 22px}
+
+/* sections */
+.sec,.show{position:relative;padding:76px 0}
+.sec.tight{padding:20px 0 60px}
+.intro{padding:76px 0 8px;text-align:center}
+.intro .lead{margin-inline:auto}
+h2{font-family:var(--display);font-weight:var(--dw);font-size:clamp(2rem,5.2vw,3.3rem);line-height:1.08;margin:0 0 14px;letter-spacing:.005em;text-wrap:balance;text-shadow:0 4px 0 rgba(0,0,0,.25)}
+h2 em{font-style:normal;background:linear-gradient(180deg,#fff0b0,var(--gold) 60%,#ff9d2e);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 0 18px color-mix(in srgb,var(--gold) 55%,transparent))}
+h3{font-family:var(--display);font-weight:var(--dw);letter-spacing:.01em}
+.lead{color:var(--muted);font-size:1.08rem;max-width:56ch;margin:0 0 22px}
+.head{text-align:center;margin-bottom:38px}
+.head .lead{margin-inline:auto}
+.eyebrow{display:inline-block;margin:0 0 14px;padding:6px 14px;border-radius:999px;font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--g);border:1px solid color-mix(in srgb,var(--g) 55%,transparent);background:color-mix(in srgb,var(--g) 12%,transparent)}
+.points{display:grid;gap:10px}
+.points li{display:flex;gap:10px;align-items:flex-start;font-weight:500}
+.points svg{width:20px;height:20px;flex:none;margin-top:4px;color:var(--g);filter:drop-shadow(0 0 6px var(--g))}
+
+.tease{display:flex;gap:16px;align-items:center;margin-top:28px;padding:16px 18px;border-radius:22px;border:1.5px dashed color-mix(in srgb,var(--g) 65%,transparent);background:color-mix(in srgb,var(--g) 9%,transparent)}
+.tease-art{display:flex;flex:none;border-radius:18px;background:radial-gradient(closest-side,color-mix(in srgb,var(--g) 70%,transparent),transparent)}
+.tease-art .spr{filter:brightness(0)}
+.tease-art .spr+.spr{margin-left:-22px}
+.tease-tag{margin:0 0 4px;font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--g)}
+.tease h3{margin:0 0 4px;font-size:1.35rem;line-height:1.1}
+.tease p:last-child{margin:0;color:var(--muted);font-size:.98rem}
+@media(max-width:480px){.tease{flex-direction:column;align-items:flex-start}}
+.show>.wrap{display:grid;gap:34px;align-items:center}
+.media{position:relative;justify-self:center;width:min(78vw,300px);padding:10px 0}
+.media .glow{position:absolute;inset:-8% -30%;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--g) 48%,transparent),transparent);animation:breathe 7s ease-in-out infinite}
+.media .phone{position:relative;rotate:-3deg;transition:rotate .5s,transform .5s}
+.media:hover .phone{rotate:0deg}
+.media.two{width:min(86vw,400px)}
+.media.two .p1{width:66%;z-index:2}
+.media.two .p2{position:absolute;right:0;top:12%;width:58%;rotate:7deg;z-index:1;filter:brightness(.82)}
+.media.two:hover .p2{rotate:10deg;filter:none}
+.media .fl{z-index:3}
+@media(min-width:960px){
+  .show{padding:96px 0}
+  .show>.wrap{grid-template-columns:1fr 1fr;gap:70px}
+  .show.flip .media{order:2}
+  .media{width:300px}.media.two{width:430px}
+}
+
+.boss-grid{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+.boss{position:relative;border-radius:26px;padding:16px 12px 20px;text-align:center;background:radial-gradient(120% 70% at 50% 0,color-mix(in srgb,var(--g) 26%,transparent),transparent 72%),var(--card);border:1px solid color-mix(in srgb,var(--g) 40%,transparent)}
+.boss .spr{margin:0 auto;transition:scale .3s cubic-bezier(.2,1.6,.4,1)}
+.boss:hover{box-shadow:0 24px 60px -26px var(--g),inset 0 0 0 1px color-mix(in srgb,var(--g) 60%,transparent)}
+.boss:hover .spr{scale:1.12}
+.boss h3{margin:6px 0 8px;font-size:1.3rem;line-height:1.1}
+.chip{display:inline-block;margin:0;padding:4px 12px;border-radius:999px;font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#12092b;background:var(--g)}
+.does{margin:10px 0 4px;font-weight:500;font-size:.98rem}
+.quote{margin:0;color:var(--muted);font-style:italic;font-size:.92rem}
+.mystery .spr{filter:brightness(0)}
+@media(min-width:900px){.boss-grid{grid-template-columns:repeat(4,1fr);gap:18px}.boss{padding:20px 16px 24px}}
+
+.pu-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.pu{padding:22px 16px;border-radius:24px;background:var(--card);border:1px solid var(--line);text-align:center;transition:border-color .25s,background .25s}
+.pu:hover{border-color:color-mix(in srgb,var(--gold) 60%,transparent);background:rgba(255,255,255,.09)}
+.pu img{width:92px;height:92px;object-fit:contain;margin:0 auto 10px;animation:bob 5s ease-in-out var(--bd) infinite}
+.pu h3{margin:0 0 4px;font-size:1.25rem}
+.pu p{margin:0;color:var(--muted);font-size:.97rem}
+
+.rail{display:flex;gap:22px;overflow-x:auto;scroll-snap-type:x mandatory;padding:12px 22px 28px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.rail figure{flex:0 0 auto;width:min(58vw,240px);margin:0;scroll-snap-align:center}
+.rail figcaption{text-align:center;margin-top:14px;font-weight:600;color:var(--muted)}
+.rail .phone{transition:transform .3s cubic-bezier(.2,1.4,.4,1)}
+.rail figure:hover .phone{transform:translateY(-8px)}
+@media(min-width:1380px){.rail{justify-content:center}}
+
+.notes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.nt{padding:24px 26px;border-radius:24px;background:var(--card);border:1px solid var(--line)}
+.nt h3{margin:0 0 6px;font-size:1.3rem;color:var(--cyan)}
+.nt p{margin:0;color:var(--muted)}
+
+.band{position:relative;overflow:hidden;text-align:center;padding:110px 0 120px;border-top:1px solid var(--line)}
+.band .spin{position:absolute;left:50%;top:50%;width:min(130vw,900px);max-width:none;transform:translate(-50%,-50%);opacity:.5;animation:turn 90s linear infinite}
+.band .lead{margin-inline:auto}
+.band-art{position:absolute;inset:0;max-width:1160px;margin:0 auto}
+
+footer{position:relative;padding:34px 0 44px;border-top:1px solid var(--line);font-size:.95rem;color:var(--muted);background:var(--foot)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;justify-content:space-between}
+footer a{color:var(--text)}
+.studio{display:flex;align-items:center;gap:12px;text-decoration:none;font-weight:600}
+.studio img{width:36px;height:36px}
+footer nav{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center}
+footer nav a{min-height:44px;display:inline-flex;align-items:center}
+.legal{flex-basis:100%;margin:0;font-size:.82rem;opacity:.8}
+/* the official Google Play badge: shown exactly as supplied, with its clear space */
+.badge{display:inline-block;margin:16px;line-height:0}
+.badge img{height:64px;width:auto;max-width:none}
+
+/* sections outside the screen stop animating */
+.io main>section:not(.live) *,.io main>section:not(.live) *::before,.io main>section:not(.live) *::after{animation-play-state:paused!important}
+/* a slow device (no graphics acceleration): the decorations stand still so the page itself stays smooth */
+.lite .fl,.lite .halo,.lite .orbit,.lite .glow,.lite .tw,.lite .shine::after,.lite .cta::after,.lite .spin,.lite .pu img{animation:none!important}
+.lite .fl{transition:none}
+.lite .tw{opacity:.7;transform:rotate(45deg) scale(.8)}
+.lite .shine::after,.lite .cta::after{display:none}
+.lite .nebula,.lite #sky,.lite #sky2{display:none}
+.lite body{background:var(--stars,none) repeat,radial-gradient(900px 700px at 85% 140px,color-mix(in srgb,var(--pink) 34%,transparent),transparent 70%) no-repeat,radial-gradient(1000px 800px at 8% 460px,color-mix(in srgb,var(--violet) 46%,transparent),transparent 70%) no-repeat,var(--bg);background-size:var(--starsz,auto),auto,auto,auto}
+.lite .glow,.lite .halo,.lite .orbit,.lite .spin{display:none}
+.lite .boss{background:var(--card)}
+.lite .belt{background:rgba(123,60,255,.12)}
+.lite .rv{opacity:1;transform:none;transition:none}
+.lite .dimg,.lite .hero-art img,.lite h2 em,.lite .points svg,.lite .media.two .p2{filter:none}
+.lite .phone{box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.22)}
+.lite .cta.soon,.lite .cta.go,.lite .pill{box-shadow:none}
+.lite h2{text-shadow:none}
+/* scroll reveal */
+.js .rv{opacity:0;transform:translateY(34px);transition:opacity .8s ease var(--dl,0s),transform .8s cubic-bezier(.2,.8,.2,1) var(--dl,0s)}
+.js .rv.in{opacity:1;transform:none}
+/* click sparks */
+.spk{position:fixed;z-index:60;width:12px;height:12px;pointer-events:none;background:var(--c);clip-path:polygon(50% 0,58% 42%,100% 50%,58% 58%,50% 100%,42% 58%,0 50%,42% 42%);animation:spk .7s ease-out forwards}
+@keyframes spk{to{transform:translate(var(--dx),var(--dy)) scale(0) rotate(180deg);opacity:0}}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .tw{opacity:.8}
+  .js .rv{opacity:1;transform:none}
+}
+:root{--panel:#12233a;--bar:rgba(9,17,30,.94);--foot:rgba(6,12,22,.7);--bezel:linear-gradient(150deg,#3d6a8f,#0d1a2c 45%,#1d3a55)}
+body{font-weight:500}
+.lead,.tagline{font-weight:500}
+.orbit{display:none}
+.stats b{font-variant-numeric:normal}
+.boss img.spr{scale:.84}
+.boss:hover img.spr{scale:.94}
+</style>
+</head>
+<body>
+<div class="nebula" aria-hidden="true"></div>
+<canvas id="sky" aria-hidden="true"></canvas><canvas id="sky2" aria-hidden="true"></canvas>
+
+<header class="top"><div class="wrap">
+  <a class="brand" href="#"><img src="img/icon-192.png" width="36" height="36" alt="">Bugs &amp; Blocks</a>
+  <nav aria-label="Sections"><a href="#siege">The siege</a><a href="#king">Beetle King</a><a href="#flowers">Flowers</a><a href="#collect">Collect</a></nav>
+  <a class="pill" href="#get">Coming soon</a>
+</div></header>
+
+<main>
+
+<section class="hero"><div class="wrap">
+  <div class="copy">
+    <h1 class="logo"><span class="vh">Bugs &amp; Blocks: Garden Siege</span><span class="lg l1"><img src="img/logo-900.webp" width="900" height="522" alt=""><i class="shine" style="--mk:url(img/logo-900.webp)"></i></span></h1>
+    <p class="tagline">A block puzzle with a twist: grow flowers, swat pests and beat the Beetle King.</p>
+    <span class="cta soon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Coming soon to Google Play</span></span><p class="note">Now in closed testing on Android.</p>
+    <ul class="stats"><li><b data-count="11">11</b><span>Bug Book entries</span></li><li><b data-count="100">100</b><span>things to collect</span></li><li><b data-count="4">4</b><span>power-ups</span></li></ul>
+  </div>
+  <div class="stage" aria-hidden="true">
+    <i class="halo"></i>
+    <span class="fl" style="left:-10%;top:8%;--k:30;--bob:4s"><canvas class="spr " width="179" height="179" style="--s:112px;--m:76px" data-src="img/spr-bee-179.webp" data-n="2" data-d="0.14" data-now data-hard></canvas></span><span class="fl" style="left:84%;top:52%;--k:24;--bob:5s"><canvas class="spr " width="154" height="154" style="--s:96px;--m:66px" data-src="img/spr-ladybug-154.webp" data-n="2" data-d="0.16" data-now data-hard></canvas></span><span class="fl" style="left:74%;top:84%;--k:34;--bob:6s"><canvas class="spr " width="141" height="141" style="--s:88px;--m:60px" data-src="img/spr-butterfly-141.webp" data-n="2" data-d="0.5" data-now data-hard></canvas></span><span class="fl" style="left:-8%;top:76%;--k:12;--bob:9s"><img class="dimg" src="img/snail-192.webp" width="186" height="87" alt="" style="--s:120px;--m:80px"></span><span class="fl" style="left:8%;top:42%;--k:18;--bob:8s"><img class="dimg" src="img/flower_a-134.webp" width="134" height="109" alt="" style="--s:84px;--m:58px"></span>
+    <span class="fl hero-phone" style="--k:8;--bob:9s"><span class="phone"><img src="img/shot-boss_fight-720.webp" srcset="img/shot-boss_fight-420.webp 420w, img/shot-boss_fight-720.webp 720w" sizes="(min-width:960px) 290px, 56vw" width="720" height="1267" alt="A boss fight against the Beetle King on the 8x8 board" decoding="async"></span></span>
+    <span class="fl hero-boss" style="--k:26;--bob:6s"><canvas class="spr " width="256" height="256" style="--s:216px;--m:136px" data-src="img/spr-king-256.webp" data-n="2" data-d="1.4" data-now data-hard></canvas></span>
+    
+    <i class="tw" style="left:12.3%;top:91.6%;--z:20px;--dl:0.33s;--c:#ffc1ee"></i><i class="tw" style="left:56.8%;top:23.8%;--z:12px;--dl:2.38s;--c:#ffe9a8"></i><i class="tw" style="left:8.2%;top:79.4%;--z:10px;--dl:1.38s;--c:#ffe9a8"></i><i class="tw" style="left:37.1%;top:57.5%;--z:12px;--dl:2.61s;--c:#fff"></i><i class="tw" style="left:89.7%;top:51.2%;--z:10px;--dl:2.34s;--c:#ffc1ee"></i><i class="tw" style="left:89.4%;top:11.5%;--z:16px;--dl:0.74s;--c:#ffc1ee"></i><i class="tw" style="left:15.8%;top:73.0%;--z:16px;--dl:1.43s;--c:#fff"></i><i class="tw" style="left:91.6%;top:61.1%;--z:12px;--dl:3.79s;--c:#bfe9ff"></i>
+  </div>
+</div></section>
+<section class="belt" aria-label="Every newcomer plays by its own rules"><div class="track" aria-hidden="true"><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-bee-96.webp" data-n="2" data-d="0.14" data-hard></canvas><small>Bee</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-ladybug-96.webp" data-n="2" data-d="0.16" data-hard></canvas><small>Ladybug</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-ant-96.webp" data-n="2" data-d="0.3" data-hard></canvas><small>Ant</small></span><span class="bi"><img class="spr" src="img/snail-96.webp" width="96" height="45" alt="" loading="lazy" style="--s:76px;--m:60px"><small>Snail</small></span><span class="bi"><img class="spr" src="img/worm-96.webp" width="37" height="96" alt="" loading="lazy" style="--s:76px;--m:60px"><small>Worm</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-beetle-96.webp" data-n="2" data-d="0.16" data-hard></canvas><small>Beetle</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-bird-96.webp" data-n="2" data-d="0.4" data-hard></canvas><small>Bird</small></span><span class="bi"><img class="spr" src="img/spider-96.webp" width="75" height="96" alt="" loading="lazy" style="--s:76px;--m:60px"><small>Spider</small></span><span class="bi"><img class="spr" src="img/centi_head-96.webp" width="96" height="68" alt="" loading="lazy" style="--s:76px;--m:60px"><small>Centipede</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-butterfly-96.webp" data-n="2" data-d="0.5" data-hard></canvas><small>Butterfly</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-king-96.webp" data-n="2" data-d="1.4" data-hard></canvas><small>Beetle King</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-bee-96.webp" data-n="2" data-d="0.14" data-hard></canvas><small>Bee</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-ladybug-96.webp" data-n="2" data-d="0.16" data-hard></canvas><small>Ladybug</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-ant-96.webp" data-n="2" data-d="0.3" data-hard></canvas><small>Ant</small></span><span class="bi"><img class="spr" src="img/snail-96.webp" width="96" height="45" alt="" loading="lazy" style="--s:76px;--m:60px"><small>Snail</small></span><span class="bi"><img class="spr" src="img/worm-96.webp" width="37" height="96" alt="" loading="lazy" style="--s:76px;--m:60px"><small>Worm</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-beetle-96.webp" data-n="2" data-d="0.16" data-hard></canvas><small>Beetle</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-bird-96.webp" data-n="2" data-d="0.4" data-hard></canvas><small>Bird</small></span><span class="bi"><img class="spr" src="img/spider-96.webp" width="75" height="96" alt="" loading="lazy" style="--s:76px;--m:60px"><small>Spider</small></span><span class="bi"><img class="spr" src="img/centi_head-96.webp" width="96" height="68" alt="" loading="lazy" style="--s:76px;--m:60px"><small>Centipede</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-butterfly-96.webp" data-n="2" data-d="0.5" data-hard></canvas><small>Butterfly</small></span><span class="bi"><canvas class="spr " width="96" height="96" style="--s:76px;--m:60px" data-src="img/spr-king-96.webp" data-n="2" data-d="1.4" data-hard></canvas><small>Beetle King</small></span></div><p class="belt-text">Every newcomer plays by its own rules</p></section>
+<section class="intro"><div class="wrap rv"><h2>A block puzzle that <em>fights back</em>.</h2><p class="lead">Drag blocks onto the 8x8 board, fill a row or a column to clear it, and keep the board open for as long as you can. Then the garden wakes up.</p></div></section>
+
+<section class="show" id="siege" style="--g:#ffb800"><div class="wrap">
+  <div class="media rv"><i class="glow"></i><span class="phone p1"><img src="img/shot-late_stage-720.webp" srcset="img/shot-late_stage-420.webp 420w, img/shot-late_stage-720.webp 720w" sizes="(min-width:960px) 270px, 52vw" width="720" height="1267" alt="A late stage with a centipede crossing the board" loading="lazy" decoding="async"></span><span class="fl" style="left:-20%;top:10%;--k:28;--bob:4s"><canvas class="spr " width="192" height="192" style="--s:120px;--m:84px" data-src="img/spr-bee-192.webp" data-n="2" data-d="0.14" data-hard></canvas></span><span class="fl" style="left:78%;top:70%;--k:18;--bob:7s"><img class="dimg" src="img/spider-176.webp" width="138" height="176" alt="" loading="lazy" style="--s:110px;--m:76px"></span><i class="tw" style="left:88.9%;top:45.2%;--z:20px;--dl:3.35s;--c:#bfe9ff"></i><i class="tw" style="left:7.2%;top:11.7%;--z:8px;--dl:2.01s;--c:#ffe9a8"></i><i class="tw" style="left:12.7%;top:20.5%;--z:20px;--dl:1.84s;--c:#ffe9a8"></i><i class="tw" style="left:61.3%;top:34.0%;--z:10px;--dl:1.80s;--c:#ffc1ee"></i></div>
+  <div class="text rv" style="--dl:.12s">
+    <p class="eyebrow">The siege</p>
+    <h2>A garden <em>under siege</em></h2>
+    <p class="lead">The bugs do not wait. The first flowers and the first bees show up within a minute, and something new arrives every few stages, each with its own rules.</p>
+    <ul class="points"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Tap, triple-tap or slash: every bug is stopped its own way</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Every newcomer gets its own reveal</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>The Bug Book keeps track of the ones you have met</span></li></ul>
+    
+  </div>
+</div></section>
+<section class="show flip" id="king" style="--g:#b06bff"><div class="wrap">
+  <div class="media rv"><i class="glow"></i><span class="phone p1"><img src="img/shot-boss_defeated-720.webp" srcset="img/shot-boss_defeated-420.webp 420w, img/shot-boss_defeated-720.webp 720w" sizes="(min-width:960px) 270px, 52vw" width="720" height="1267" alt="The Beetle King defeated, with confetti" loading="lazy" decoding="async"></span><span class="fl" style="left:-26%;top:50%;--k:16;--bob:6s"><canvas class="spr " width="256" height="256" style="--s:210px;--m:136px" data-src="img/spr-king-256.webp" data-n="2" data-d="1.4" data-hard></canvas></span><i class="tw" style="left:54.6%;top:82.3%;--z:16px;--dl:0.75s;--c:#bfe9ff"></i><i class="tw" style="left:91.9%;top:33.3%;--z:16px;--dl:2.68s;--c:#fff"></i><i class="tw" style="left:15.5%;top:21.7%;--z:12px;--dl:1.35s;--c:#ffc1ee"></i><i class="tw" style="left:38.1%;top:47.4%;--z:12px;--dl:0.86s;--c:#ffe9a8"></i></div>
+  <div class="text rv" style="--dl:.12s">
+    <p class="eyebrow">Boss fights</p>
+    <h2>Beat the <em>Beetle King</em></h2>
+    <p class="lead">Every 10 stages the one who sends the pests shows up himself. Clear lines to hurt him before his attack timer runs out.</p>
+    <ul class="points"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>He shows up every 10 stages</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Beat his attack timer by clearing lines</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Win coins and a free power-up</span></li></ul>
+    
+  </div>
+</div></section>
+<section class="show" id="flowers" style="--g:#ff6fb1"><div class="wrap">
+  <div class="media rv"><i class="glow"></i><span class="phone p1"><img src="img/shot-combo-720.webp" srcset="img/shot-combo-420.webp 420w, img/shot-combo-720.webp 720w" sizes="(min-width:960px) 270px, 52vw" width="720" height="1267" alt="A combo on a board with flower blocks" loading="lazy" decoding="async"></span><span class="fl" style="left:74%;top:-4%;--k:20;--bob:7s"><img class="dimg" src="img/flower_a-208.webp" width="158" height="129" alt="" loading="lazy" style="--s:130px;--m:88px"></span><span class="fl" style="left:-16%;top:62%;--k:28;--bob:6s"><img class="dimg" src="img/flower_d-154.webp" width="152" height="141" alt="" loading="lazy" style="--s:96px;--m:66px"></span><span class="fl" style="left:82%;top:78%;--k:34;--bob:8s"><img class="dimg" src="img/flower_b-115.webp" width="115" height="104" alt="" loading="lazy" style="--s:72px;--m:50px"></span><i class="tw" style="left:37.1%;top:21.8%;--z:20px;--dl:0.28s;--c:#fff"></i><i class="tw" style="left:7.9%;top:58.7%;--z:12px;--dl:0.74s;--c:#ffe9a8"></i><i class="tw" style="left:19.9%;top:70.3%;--z:10px;--dl:2.43s;--c:#ffe9a8"></i><i class="tw" style="left:63.5%;top:9.8%;--z:12px;--dl:2.93s;--c:#ffe9a8"></i></div>
+  <div class="text rv" style="--dl:.12s">
+    <p class="eyebrow">Grow</p>
+    <h2>Grow <em>flowers</em>, earn coins</h2>
+    <p class="lead">Flower blocks arrive as buds. Clear a line beside one to water it, and watch it grow from bud to bloom to big bloom.</p>
+    <ul class="points"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Harvest at the right moment for the biggest reward</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Wait too long and it wilts</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Place blocks quickly to fill the heat bar: up to x3 points</span></li></ul>
+    
+  </div>
+</div></section>
+<section class="show flip" id="collect" style="--g:#48d0ff"><div class="wrap">
+  <div class="media rv two"><i class="glow"></i><span class="phone p1"><img src="img/shot-shop_faces-720.webp" srcset="img/shot-shop_faces-420.webp 420w, img/shot-shop_faces-720.webp 720w" sizes="(min-width:960px) 270px, 52vw" width="720" height="1267" alt="The shop with block faces" loading="lazy" decoding="async"></span><span class="phone p2"><img src="img/shot-shop_hats-720.webp" srcset="img/shot-shop_hats-420.webp 420w, img/shot-shop_hats-720.webp 720w" sizes="(min-width:960px) 270px, 52vw" width="720" height="1267" alt="The shop with board frames and hats" loading="lazy" decoding="async"></span><span class="fl" style="left:-12%;top:4%;--k:30;--bob:5s"><canvas class="spr " width="154" height="154" style="--s:96px;--m:66px" data-src="img/spr-butterfly-154.webp" data-n="2" data-d="0.5" data-hard></canvas></span><i class="tw" style="left:51.3%;top:17.8%;--z:20px;--dl:2.69s;--c:#fff"></i><i class="tw" style="left:5.7%;top:55.6%;--z:16px;--dl:0.16s;--c:#fff"></i><i class="tw" style="left:14.1%;top:76.8%;--z:20px;--dl:1.22s;--c:#ffe9a8"></i><i class="tw" style="left:67.0%;top:24.1%;--z:10px;--dl:3.40s;--c:#ffc1ee"></i></div>
+  <div class="text rv" style="--dl:.12s">
+    <p class="eyebrow">Dress it up</p>
+    <h2><em>100 things</em> to collect</h2>
+    <p class="lead">Dress the game up your way: board frames, block faces, hats for the Beetle King, garden ornaments and blade trails.</p>
+    <ul class="points"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Board frames, block faces and blade trails</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Hats for the Beetle King and garden ornaments</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Own six faces or six hats and switch on Randomize for a different look every time</span></li></ul>
+    
+  </div>
+</div></section>
+<section class="show" id="daily" style="--g:#5fd97a"><div class="wrap">
+  <div class="media rv"><i class="glow"></i><span class="phone p1"><img src="img/shot-home-720.webp" srcset="img/shot-home-420.webp 420w, img/shot-home-720.webp 720w" sizes="(min-width:960px) 270px, 52vw" width="720" height="1267" alt="The home screen with the shop, the Bug Book and the daily gift" loading="lazy" decoding="async"></span><span class="fl" style="left:76%;top:8%;--k:26;--bob:5s"><canvas class="spr " width="166" height="166" style="--s:104px;--m:72px" data-src="img/spr-ladybug-166.webp" data-n="2" data-d="0.16" data-hard></canvas></span><span class="fl" style="left:-22%;top:74%;--k:12;--bob:9s"><img class="dimg" src="img/snail-192.webp" width="186" height="87" alt="" loading="lazy" style="--s:120px;--m:80px"></span><i class="tw" style="left:90.9%;top:5.5%;--z:16px;--dl:2.80s;--c:#ffc1ee"></i><i class="tw" style="left:45.4%;top:14.1%;--z:16px;--dl:0.66s;--c:#bfe9ff"></i><i class="tw" style="left:85.4%;top:33.7%;--z:10px;--dl:1.02s;--c:#ffc1ee"></i><i class="tw" style="left:80.4%;top:41.7%;--z:20px;--dl:1.03s;--c:#bfe9ff"></i></div>
+  <div class="text rv" style="--dl:.12s">
+    <p class="eyebrow">Every day</p>
+    <h2>Made to <em>come back to</em></h2>
+    <p class="lead">Endless stages: how far can you get? Come back for a daily gift and spend the coins you earn on permanent upgrades.</p>
+    <ul class="points"><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>A daily gift that grows with your streak</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Permanent upgrades bought with the coins you earn</span></li><li><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Play offline whenever you like</span></li></ul>
+    
+  </div>
+</div></section>
+
+<section class="sec" id="pests"><div class="wrap">
+  <div class="head rv"><h2>Know your <em>pests</em></h2><p class="lead">Every creature plays by its own rules. Here is how to deal with each one.</p></div>
+  <ul class="boss-grid">
+<li class="boss rv" style="--g:#ffd23f;--dl:0.00s">
+  <canvas class="spr " width="256" height="256" style="--s:176px;--m:124px" data-src="img/spr-bee-256.webp" data-n="2" data-d="0.14" data-hard></canvas>
+  <h3>Bee</h3>
+  <p class="chip">Tap</p>
+  <p class="does">Flies in to eat your flowers</p>
+</li>
+<li class="boss rv" style="--g:#ff5a5a;--dl:0.08s">
+  <canvas class="spr " width="256" height="256" style="--s:176px;--m:124px" data-src="img/spr-ladybug-256.webp" data-n="2" data-d="0.16" data-hard></canvas>
+  <h3>Ladybug</h3>
+  <p class="chip">Friend</p>
+  <p class="does">On your side: tap her for a gift</p>
+</li>
+<li class="boss rv" style="--g:#e08a5a;--dl:0.16s">
+  <canvas class="spr " width="256" height="256" style="--s:176px;--m:124px" data-src="img/spr-ant-256.webp" data-n="2" data-d="0.3" data-hard></canvas>
+  <h3>Ants</h3>
+  <p class="chip">Tap them all</p>
+  <p class="does">March across the board and carry off your points</p>
+</li>
+<li class="boss rv" style="--g:#d2a679;--dl:0.24s">
+  <img class="spr" src="img/snail-282.webp" width="186" height="87" alt="" loading="lazy" style="--s:176px;--m:124px">
+  <h3>Snail</h3>
+  <p class="chip">3 taps</p>
+  <p class="does">Smears slime across a row</p>
+</li>
+<li class="boss rv" style="--g:#f0a0c0;--dl:0.00s">
+  <img class="spr" src="img/worm-282.webp" width="93" height="240" alt="" loading="lazy" style="--s:176px;--m:124px">
+  <h3>Worm</h3>
+  <p class="chip">Tap</p>
+  <p class="does">Pops up in empty cells and blocks them</p>
+</li>
+<li class="boss rv" style="--g:#ff4d6a;--dl:0.08s">
+  <img class="spr" src="img/spider-282.webp" width="149" height="190" alt="" loading="lazy" style="--s:176px;--m:124px">
+  <h3>Spider</h3>
+  <p class="chip">Pest</p>
+  <p class="does">Breaks your combo</p>
+</li>
+<li class="boss rv" style="--g:#ff9f1c;--dl:0.16s">
+  <img class="spr" src="img/centi_head-282.webp" width="183" height="129" alt="" loading="lazy" style="--s:176px;--m:124px">
+  <h3>Centipede</h3>
+  <p class="chip">Slash</p>
+  <p class="does">Cannot be tapped: slash across it with your finger</p>
+</li>
+<li class="boss rv mystery" style="--g:#9fb4ff;--dl:0.24s">
+  <canvas class="spr " width="256" height="256" style="--s:176px;--m:124px" data-src="img/spr-bird-256.webp" data-n="2" data-d="0.4" data-hold data-hard></canvas>
+  <h3>???</h3>
+  <p class="chip">Shadows</p>
+  <p class="does">The rest are only shadows... for now</p>
+</li></ul>
+</div></section>
+
+<section class="sec" id="powerups"><div class="wrap">
+  <div class="head rv"><h2>Power-ups for <em>tight spots</em></h2><p class="lead">Four ways out of a jam.</p></div>
+  <ul class="pu-grid"><li class="pu rv" style="--dl:0.00s"><img src="img/hammer-192.webp" width="192" height="192" alt="" loading="lazy" style="--bd:-0.0s"><h3>Hammer</h3><p>Smash any single block.</p></li><li class="pu rv" style="--dl:0.07s"><img src="img/bomb-192.webp" width="164" height="192" alt="" loading="lazy" style="--bd:-0.7s"><h3>Bomb</h3><p>Blast a 3x3 area.</p></li><li class="pu rv" style="--dl:0.14s"><img src="img/rotate-192.webp" width="177" height="154" alt="" loading="lazy" style="--bd:-1.4s"><h3>Rotate</h3><p>Turn a piece.</p></li><li class="pu rv" style="--dl:0.21s"><img src="img/reroll-192.webp" width="148" height="148" alt="" loading="lazy" style="--bd:-2.1s"><h3>Reroll</h3><p>Swap all the pieces in your tray.</p></li></ul>
+</div></section>
+
+<section class="sec tight"><div class="wrap notes"><div class="nt rv"><h3>Play offline</h3><p>No connection needed. Play whenever you like.</p></div><div class="nt rv"><h3>Free to play</h3><p>With ads and optional in-app purchases.</p></div></div></section>
+
+<section class="band" id="get"><div class="band-art" aria-hidden="true"><span class="fl" style="left:4%;top:22%;--k:16;--bob:6s"><canvas class="spr " width="256" height="256" style="--s:190px;--m:96px" data-src="img/spr-king-256.webp" data-n="2" data-d="1.4" data-hard></canvas></span><span class="fl" style="left:84%;top:18%;--k:16;--bob:4s"><canvas class="spr " width="160" height="160" style="--s:100px;--m:60px" data-src="img/spr-bee-160.webp" data-n="2" data-d="0.14" data-hard></canvas></span><span class="fl" style="left:80%;top:66%;--k:16;--bob:8s"><img class="dimg" src="img/flower_b-144.webp" width="144" height="130" alt="" loading="lazy" style="--s:90px;--m:54px"></span><span class="fl" style="left:12%;top:72%;--k:16;--bob:7s"><img class="dimg" src="img/flower_d-112.webp" width="112" height="104" alt="" loading="lazy" style="--s:70px;--m:44px"></span></div>
+  <div class="wrap rv"><i class="tw" style="left:68.3%;top:35.6%;--z:16px;--dl:2.80s;--c:#bfe9ff"></i><i class="tw" style="left:66.3%;top:46.4%;--z:16px;--dl:0.60s;--c:#ffe9a8"></i><i class="tw" style="left:27.3%;top:40.8%;--z:16px;--dl:3.47s;--c:#ffc1ee"></i><i class="tw" style="left:83.1%;top:43.8%;--z:20px;--dl:2.80s;--c:#ffe9a8"></i><i class="tw" style="left:30.5%;top:29.6%;--z:12px;--dl:0.04s;--c:#ffe9a8"></i><i class="tw" style="left:73.7%;top:14.1%;--z:8px;--dl:0.15s;--c:#fff"></i><i class="tw" style="left:73.2%;top:17.5%;--z:10px;--dl:2.65s;--c:#bfe9ff"></i><i class="tw" style="left:96.3%;top:93.4%;--z:20px;--dl:1.74s;--c:#fff"></i>
+    <h2>Defend your <em>garden</em></h2><p class="lead">Free to play on Android phones and tablets.</p><span class="cta soon"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.500l2.600 7.900 7.900 2.600-7.900 2.600-2.600 7.900-2.600-7.900-7.900-2.600 7.900-2.600z"/></svg><span>Coming soon to Google Play</span></span><p class="note">Now in closed testing on Android.</p>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">
+  <a class="studio" href="https://biberbit.com/"><img src="img/studio.png" width="36" height="36" alt="">BiberBit Studio</a>
+  <nav aria-label="Footer">
+    <a href="https://biberbit.com/bugs-and-blocks-privacy.html">Privacy policy</a>
+    <a href="mailto:support@biberbit.com">support@biberbit.com</a>
+    <span>&copy; 2026 BiberBit Studio</span>
+  </nav>
+  <p class="legal">Google Play and Android are trademarks of Google LLC.</p>
+</div></footer>
+
+<script>
+(function(){
+  var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var root = document.documentElement, lite = false;
+  try { lite = sessionStorage.getItem("lite") === "1"; } catch (e) {}
+  if (/[?&]calm\b/.test(location.search)) lite = true;      /* add ?calm to the address to see calm mode */
+  if (lite) root.classList.add("lite");
+
+  /* ---- sky: every star is painted once; a few big ones twinkle inside their own small patch ---- */
+  var back = document.getElementById("sky"), front = document.getElementById("sky2");
+  var bg = back.getContext("2d"), fg = front.getContext("2d");
+  var W = 0, H = 0, big = [], shot = null, box = null, nextShot = 3000, lastSky = 0;
+  var tints = ["255,255,255", "255,232,170", "190,222,255", "255,196,240"];
+  function star(g, s, a){
+    g.fillStyle = "rgba(" + s.c + "," + a + ")";
+    g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.28); g.fill();
+    if (s.big){
+      var l = s.r * (2.5 + 4 * a);
+      g.strokeStyle = "rgba(" + s.c + "," + a * .6 + ")"; g.lineWidth = .8;
+      g.beginPath(); g.moveTo(s.x - l, s.y); g.lineTo(s.x + l, s.y); g.moveTo(s.x, s.y - l); g.lineTo(s.x, s.y + l); g.stroke();
+    }
+  }
+  function still(){ fg.clearRect(0, 0, W, H); for (var i = 0; i < big.length; i++) star(fg, big[i], .8); shot = null; box = null; }
+  /* calm mode: the sky becomes one picture behind the page that scrolls with it, so nothing is layered */
+  function flatten(){
+    try {
+      bg.save(); bg.setTransform(1, 0, 0, 1, 0, 0); bg.drawImage(front, 0, 0); bg.restore();
+      root.style.setProperty("--stars", "url(" + back.toDataURL("image/png") + ")");
+      root.style.setProperty("--starsz", W + "px " + H + "px");
+    } catch (e) {}
+  }
+  function size(){
+    if (innerWidth === W && innerHeight <= H) return;   /* a phone hiding its address bar is not a new sky */
+    var d = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = innerWidth; H = innerHeight + 120;
+    [back, front].forEach(function(c){ c.width = W * d; c.height = H * d; c.style.height = H + "px"; c.getContext("2d").setTransform(d, 0, 0, d, 0, 0); });
+    big = []; shot = null; box = null;
+    for (var i = 0, n = Math.round(Math.min(260, W * H / 5200)); i < n; i++){
+      var s = {x: Math.random() * W, y: Math.random() * H, c: tints[Math.random() * tints.length | 0], p: Math.random() * 6.28, v: .7 + Math.random() * 2.2};
+      s.big = Math.random() < .13; s.r = s.big ? 1.3 + Math.random() * 1.2 : .4 + Math.random() * .9;
+      if (s.big && big.length < 34) big.push(s); else star(bg, s, s.big ? .8 : .3 + Math.random() * .6);
+    }
+    if (calm || lite) still();
+    if (lite) flatten();
+  }
+  function sky(t, dt){
+    if (t - lastSky >= 33){
+      lastSky = t;
+      for (var i = 0; i < big.length; i++){
+        var s = big[i], l = s.r * 6.5 + 2;
+        fg.clearRect(s.x - l, s.y - l, l * 2, l * 2);
+        star(fg, s, .25 + .75 * (.5 + .5 * Math.sin(t * .001 * s.v + s.p)));
+      }
+    }
+    if (!shot && t > nextShot){
+      var dir = Math.random() < .5 ? 1 : -1;
+      shot = {x: W * (.2 + Math.random() * .6), y: H * Math.random() * .35, vx: dir * (.3 + Math.random() * .18), vy: .13 + Math.random() * .1, life: 1};
+      nextShot = t + 4000 + Math.random() * 6000;
+    }
+    if (shot){
+      if (box) fg.clearRect(box[0], box[1], box[2], box[3]);
+      shot.x += shot.vx * dt; shot.y += shot.vy * dt; shot.life -= dt / 1300;
+      if (shot.life <= 0){ shot = null; box = null; return; }
+      var tx = shot.x - shot.vx * 420, ty = shot.y - shot.vy * 420;
+      var tail = fg.createLinearGradient(shot.x, shot.y, tx, ty);
+      tail.addColorStop(0, "rgba(255,255,255," + shot.life + ")"); tail.addColorStop(1, "rgba(255,255,255,0)");
+      fg.strokeStyle = tail; fg.lineWidth = 2; fg.lineCap = "round";
+      fg.beginPath(); fg.moveTo(shot.x, shot.y); fg.lineTo(tx, ty); fg.stroke();
+      box = [Math.min(shot.x, tx) - 4, Math.min(shot.y, ty) - 4, Math.abs(shot.x - tx) + 8, Math.abs(shot.y - ty) + 8];
+    }
+  }
+  size(); addEventListener("resize", size);
+
+  /* ---- sprites: a small canvas each, pictures drawn from one decoded strip, each melting into the next ---- */
+  var players = [], lastSpr = 0;
+  function paint(p, k, a){
+    var g = p.g, s = p.px;
+    g.clearRect(0, 0, s, s); g.globalAlpha = 1;
+    g.drawImage(p.img, k * s, 0, s, s, 0, 0, s, s);
+    if (a > .02){ g.globalAlpha = a; g.drawImage(p.img, ((k + 1) % p.n) * s, 0, s, s, 0, 0, s, s); }
+  }
+  function loadSprite(p){
+    if (p.asked) return;
+    p.asked = true;
+    var im = new Image();
+    function ready(){ if (!p.img && im.naturalWidth){ p.img = im; paint(p, 0, 0); } }
+    im.onload = ready; im.src = p.c.dataset.src;
+    if (im.decode) im.decode().then(ready, function(){});
+  }
+  document.querySelectorAll("canvas.spr").forEach(function(c){
+    var p = {c: c, g: c.getContext("2d"), n: +c.dataset.n, d: +c.dataset.d * 1000, px: c.width, img: null, asked: false,
+             on: false, hold: c.hasAttribute("data-hold"), hard: c.hasAttribute("data-hard"), hot: false, drawn: -1, off: Math.random() * 2000};
+    players.push(p); c._p = p;
+    if (c.hasAttribute("data-now")) loadSprite(p);
+    if (p.hold){
+      var host = c.closest(".boss,.tease") || c;
+      host.addEventListener("pointerenter", function(){ p.hot = true; });
+      host.addEventListener("pointerleave", function(){ p.hot = false; });
+    }
+  });
+  function sprites(t){
+    if (t - lastSpr < (lite ? 90 : 15)) return;     /* calm mode: about 11 pictures a second, no melting */
+    lastSpr = t;
+    for (var i = 0; i < players.length; i++){
+      var p = players[i];
+      if (!p.on || !p.img || (p.hold && !p.hot)) continue;
+      var pos = ((t + p.off) % p.d) / p.d * p.n, k = pos | 0;
+      if (lite || p.hard){ if (k !== p.drawn){ paint(p, k, 0); p.drawn = k; } } else paint(p, k, pos - k);
+    }
+  }
+
+  /* ---- the planet belt slides by itself and can be dragged with a finger or the mouse ---- */
+  var beltSec = document.querySelector(".belt"), track = document.querySelector(".track");
+  var bx = 0, half = 0, dragging = false, lastX = 0, beltSkip = false;
+  function measure(){ if (track) half = track.scrollWidth / 2; }
+  if (track){
+    measure(); addEventListener("resize", measure); addEventListener("load", measure);
+    track.addEventListener("pointerdown", function(e){ dragging = true; lastX = e.clientX; track.classList.add("drag"); try { track.setPointerCapture(e.pointerId); } catch (x) {} });
+    track.addEventListener("pointermove", function(e){ if (dragging){ bx += e.clientX - lastX; lastX = e.clientX; } });
+    ["pointerup", "pointercancel"].forEach(function(n){ track.addEventListener(n, function(){ dragging = false; track.classList.remove("drag"); }); });
+  }
+  function belt(dt){
+    if (!half || !beltSec.classList.contains("live")) return;
+    if (!dragging && !calm) bx -= dt * .045;
+    if (lite && !dragging && (beltSkip = !beltSkip)) return;     /* calm mode: move it on every other frame */
+    if (bx <= -half) bx += half; else if (bx > 0) bx -= half;
+    track.style.transform = "translate3d(" + bx.toFixed(2) + "px,0,0)";
+  }
+
+  /* ---- one loop; it also watches the pace and calms the page down on a slow device ---- */
+  function goLite(){
+    lite = true; root.classList.add("lite"); still(); flatten();
+    try { sessionStorage.setItem("lite", "1"); } catch (e) {}
+  }
+  var prev = 0, acc = 0, cnt = 0, slowRun = 0, watchFrom = 0;
+  addEventListener("load", function(){ watchFrom = performance.now() + 2500; });
+  function frame(t){
+    requestAnimationFrame(frame);
+    var dt = Math.min(t - prev, 100); prev = t;
+    if (!lite && watchFrom && t > watchFrom){
+      acc += dt; cnt++;
+      if (acc >= 1000){ slowRun = cnt < 26 ? slowRun + 1 : 0; acc = 0; cnt = 0; if (slowRun >= 2) goLite(); }
+    }
+    if (track) belt(dt);
+    if (calm) return;
+    if (!lite) sky(t, dt);
+    sprites(t);
+  }
+  requestAnimationFrame(frame);
+
+  /* ---- what is on screen: lazy strips, running sprites, scroll reveal, live sections, counters ---- */
+  var io = "IntersectionObserver" in window;
+  if (io){
+    root.classList.add("io");
+    var lv = new IntersectionObserver(function(es){ es.forEach(function(e){ e.target.classList.toggle("live", e.isIntersecting); }); }, {rootMargin: "80px"});
+    document.querySelectorAll("main>section").forEach(function(el){ lv.observe(el); });
+    var near = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ loadSprite(e.target._p); near.unobserve(e.target); } }); }, {rootMargin: "500px"});
+    var seen = new IntersectionObserver(function(es){ es.forEach(function(e){ e.target._p.on = e.isIntersecting; }); }, {rootMargin: "60px"});
+    players.forEach(function(p){ near.observe(p.c); seen.observe(p.c); });
+    var rv = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); rv.unobserve(e.target); } }); }, {threshold: .14});
+    document.querySelectorAll(".rv").forEach(function(el){ rv.observe(el); });
+  } else {
+    players.forEach(function(p){ p.on = true; loadSprite(p); });
+    document.querySelectorAll(".rv").forEach(function(el){ el.classList.add("in"); });
+    if (beltSec) beltSec.classList.add("live");
+  }
+  if (!calm) document.querySelectorAll("[data-count]").forEach(function(el){
+    var to = +el.dataset.count, t0 = null;
+    function step(t){ if (!t0) t0 = t; var k = Math.min((t - t0) / 1500, 1); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); }
+    el.textContent = "0"; setTimeout(function(){ requestAnimationFrame(step); }, 500);
+  });
+
+  if (calm) return;
+  /* the floating things lean away from the pointer: only in the sections on screen */
+  var raf = 0, mx = 0, my = 0;
+  addEventListener("pointermove", function(e){
+    if (lite || e.pointerType === "touch") return;
+    mx = (e.clientX / innerWidth - .5).toFixed(3); my = (e.clientY / innerHeight - .5).toFixed(3);
+    if (raf) return;
+    raf = requestAnimationFrame(function(){
+      raf = 0;
+      var els = document.querySelectorAll("section.live .stage,section.live .media");
+      for (var i = 0; i < els.length; i++){ els[i].style.setProperty("--px", mx); els[i].style.setProperty("--py", my); }
+    });
+  }, {passive: true});
+  /* a burst of sparks wherever you click or tap */
+  var hues = ["#fff", "#ffe07a", "#ff9be0", "#9fe8ff"];
+  addEventListener("pointerdown", function(e){
+    if (lite) return;
+    for (var i = 0; i < 8; i++){
+      var s = document.createElement("i"), a = Math.random() * 6.28, r = 34 + Math.random() * 54;
+      s.className = "spk";
+      s.style.cssText = "left:" + (e.clientX - 6) + "px;top:" + (e.clientY - 6) + "px;--dx:" + Math.cos(a) * r + "px;--dy:" + Math.sin(a) * r + "px;--c:" + hues[i % 4];
+      s.addEventListener("animationend", function(){ this.remove(); });
+      document.body.appendChild(s);
+    }
+  }, {passive: true});
+})();
+</script>
+</body>
+</html>
